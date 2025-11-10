@@ -5,7 +5,9 @@ using RimWorld;
 using SmashTools;
 using UnityEngine.Assertions;
 using UpdateLogTool;
+using Vehicles.Config;
 using Verse;
+using static Vehicles.Config.FeatureFlags;
 
 namespace Vehicles;
 
@@ -28,6 +30,8 @@ public static class VehicleHarmony
 
 	public static List<VehicleDef> AllMoveableVehicleDefs { get; internal set; }
 
+	public static bool BurstEnabled { get; }
+
 	static VehicleHarmony()
 	{
 		Assert.IsTrue(UnityData.IsInMainThread);
@@ -36,9 +40,16 @@ public static class VehicleHarmony
 
 		using DeepProfilerScope dps = new(nameof(VehicleHarmony));
 #if !RELEASE
-		Log.Message($"{LogLabel} version {VehicleMod.metaData.ModVersion} Unstable");
+		Log.Message($"{LogLabel} version {VehicleMod.metaData.ModVersion} -DEV");
 #else
     Log.Message($"{LogLabel} version {VehicleMod.metaData.ModVersion}");
+#endif
+
+#if DEBUG
+		if (IsFeatureEnabled(BurstLib))
+		{
+			BurstEnabled = SmashTools.Burst.BurstAssemblyLoader.LoadAllFor(VehicleMod.content);
+		}
 #endif
 
 		Utilities.InvokeWithLogging(ResolveAllReferences);

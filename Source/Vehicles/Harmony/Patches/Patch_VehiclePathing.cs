@@ -96,7 +96,13 @@ internal class Patch_VehiclePathing : IPatchCategory
         nameof(GenStep_RocksFromGrid.Generate)),
       prefix: new HarmonyMethod(typeof(Patch_VehiclePathing),
         nameof(DisableRegionUpdatingRockGen)));
-  }
+		HarmonyPatcher.Patch(original: AccessTools.Method(typeof(PathGrid), nameof(PathGrid.DisableIncrementalDirtying)),
+			postfix: new HarmonyMethod(typeof(Patch_VehiclePathing),
+			nameof(BeginPathGridCapture)));
+		HarmonyPatcher.Patch(original: AccessTools.Method(typeof(PathGrid), nameof(PathGrid.ReEnableIncrementalDirtying)),
+			finalizer: new HarmonyMethod(typeof(Patch_VehiclePathing),
+			nameof(EndPathGridCapture)));
+	}
 
   private static bool MultiselectVehicleGotoBlocked(Pawn pawn, ref AcceptanceReport __result)
   {
@@ -338,13 +344,23 @@ internal class Patch_VehiclePathing : IPatchCategory
   {
     if (!map.TileInfo.WaterCovered)
     {
-      map.GetCachedMapComponent<VehiclePathingSystem>().DisableAllRegionUpdaters();
+      map.GetCachedMapComponent<VehiclePathingSystem>()?.DisableAllRegionUpdaters();
     }
   }
 
-  /* ---- Helper Methods related to patches ---- */
+	private static void BeginPathGridCapture(Map ___map)
+	{
+		___map.GetCachedMapComponent<VehiclePathingSystem>()?.BeginCapturingPathGridDirtying();
+	}
 
-  private static void SpawnAndNotifyVehicleRegions(Thing thing, Map map)
+	private static void EndPathGridCapture(Map ___map)
+	{
+		___map.GetCachedMapComponent<VehiclePathingSystem>()?.EndCapturingPathGridDirtying();
+	}
+
+	/* ---- Helper Methods related to patches ---- */
+
+	private static void SpawnAndNotifyVehicleRegions(Thing thing, Map map)
   {
     PathingHelper.ThingAffectingRegionsStateChange(thing, map, true);
   }
